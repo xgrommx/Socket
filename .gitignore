@@ -1,0 +1,4 @@
+#Ignore libraries
+src/lib/
+test/lib/
+
