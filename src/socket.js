@@ -195,7 +195,6 @@
 				return socketList[name].socket;
 			},
 			addOn: function(name, event_name, callback) {
-				// Socket name, event name, broadcast event name, callback function
 				// Return null if no socket with name, or on event
 
 				if (!hasSocket(name)) {
@@ -233,8 +232,6 @@
 				return socketList[ name ].on.event_name;
 			}, 
 			addEmit: function(name, event_name, callback) {
-				// TODO: test emiting
-				// Socket name, event name, broadcast event name, callback function
 				// Return null if no socket with name, or on event
 
 				if (!hasSocket(name)) {
