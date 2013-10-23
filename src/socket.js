@@ -195,7 +195,7 @@
 				return socketList[name].socket;
 			},
 			addOn: function(name, event_name, callback) {
-				// Return null if no socket with name, or on event
+				// Returns null if no socket with name, or on event
 
 				if (!hasSocket(name)) {
 					return null;
@@ -232,7 +232,7 @@
 				return socketList[ name ].on.event_name;
 			}, 
 			addEmit: function(name, event_name, callback) {
-				// Return null if no socket with name, or on event
+				// Returns null if no socket with name, or on event
 
 				if (!hasSocket(name)) {
 					return null;
