@@ -194,7 +194,7 @@
 
 				return socketList[name].socket;
 			},
-			addOn: function(name, event_name, bc_name, callback) {
+			addOn: function(name, event_name, callback) {
 				// Socket name, event name, broadcast event name, callback function
 				// Return null if no socket with name, or on event
 
@@ -212,23 +212,27 @@
 
 				var obj = { 
 					event_name: event_name, 
-					bc_name: getBcName(name, event_name, bc_name),
+					bc_name: getBcName(name, event_name, callback),
 					callback: callback
 					};
 
 				socketList[ name ].on.event_name = obj;
 
 				socketList[ name ].socket.on(event_name, function(data) {
-					$rootScope.$broadcast(obj.bc_name, {data: data});
+					switch(typeof callback){
+						case 'function':
+							callback(data);
+							break;
 
-					if (typeof callback === 'function') {
-						callback(data);
+						default:
+							$rootScope.$broadcast(obj.bc_name, data);
+							break;
 					}
 				});
 
 				return socketList[ name ].on.event_name;
 			}, 
-			addEmit: function(name, event_name, bc_name, callback) {
+			addEmit: function(name, event_name, callback) {
 				// TODO: test emiting
 				// Socket name, event name, broadcast event name, callback function
 				// Return null if no socket with name, or on event
@@ -255,10 +259,14 @@
 				socketList[ name ].emit.event_name = obj;
 				
 				socketList[ name ].socket.emit(event_name, function(data) {
-					$rootScope.$broadcast(obj.bc_name, {data: data});
+					switch(typeof callback){
+						case 'function':
+							callback(data);
+							break;
 
-					if (typeof callback === 'function') {
-						callback(data);
+						default:
+							$rootScope.$broadcast(obj.bc_name, data);
+							break;
 					}
 
 					socketList[ name ].emit.event_name.emited = true;
