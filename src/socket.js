@@ -248,7 +248,7 @@
 
 				var obj = { 
 					event_name: event_name, 
-					bc_name: getBcName(name, event_name, bc_name), 
+					bc_name: getBcName(name, event_name, callback), 
 					callback: callback,
 					emited: false
 					};
