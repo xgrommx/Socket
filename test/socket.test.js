@@ -162,7 +162,21 @@ describe('Socket: ', function() {
 
 			expect(socketFactory.getOn('socket1', 'on_event')).toEqual(onEvent);
 			expect(socketFactory.getEmit('socket1', 'emit_event')).toEqual(emitEvent);
+
+			// TODO: Check on and emit event structure
+			// TODO: event structure name
 		}));
 
+		it('Should call callback function', inject(function($rootScope){
+
+		}));
+
+		it('Should emit broadcast', inject(function($rootScope){
+
+		}));
+
+		it('Should push socket', inject(function($rootScope){
+
+		}));
 	});
 });
