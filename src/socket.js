@@ -151,6 +151,27 @@
 				
 				return promise;			
 			},
+			push: function(name, socket) {
+				// TODO: test it
+				if (typeof name !== 'string') {
+					return false;
+				}
+
+				if (typeof socket === 'undefined') {
+					return false;
+				}				
+
+				if ( hasSocket(name) ) {
+					return false;
+				}
+
+				socketList[ name ] = {};
+				socketList[ name ][ 'socket' ] 	= socket;
+				socketList[ name ][ 'on' ]		= {};
+				socketList[ name ][ 'emit' ]   	= {};
+				
+				return socketList[ name ];
+			},
 			remove: function(name) {
 				// TODO: realize
 				// TODO: test
