@@ -2,10 +2,12 @@
 
 	'use strict';
 
-	var SocketService = function($q) {
+	var SocketService = function($q, $rootScope) {
 
 		var create = function(config) {
 			var deferred = $q.defer();
+
+			console.log('SocketService create', config);
 
 			if (typeof config === 'undefined') {
 				return $q.reject('Socket config is undefined');
@@ -19,24 +21,30 @@
 				return $q.reject('Unsupported URL type');
 			}
 
-			if (typeof config.opts !== 'object') {
+			try {
+				var socket = io.connect( config.url, config.opts );
 
-				try {
-					var socket = io.connect( config.url );
-					deferred.resolve( socket );
-				} catch ( err ) {
-					return $q.reject( err );
-				}
+				socket.on('connect', function() {
+					console.log('connect');			
+					$rootScope.$apply(function() {
+						deferred.resolve(socket);
+					});
+				});
 
-			} else {
+				socket.on('error', function() {
+					console.log('error');
+					$rootScope.$apply(function() {
+						deferred.reject('CONNECTION ERROR');
+					});					
+				});
 
-				try {
-					var socket = io.connect( config.url, config.opts );
-					deferred.resolve( socket );
-				} catch ( err ) {
-					return $q.reject( err );
-				}
-
+				/* NEED TO TEST IT
+				socket.on('disconnect', function() {
+					socket.removeAllListeners();
+				});
+				*/
+			} catch ( err ) {
+				return $q.reject( err );
 			}
 
 			return deferred.promise;
@@ -80,16 +88,17 @@
 
 		var add = function(obj) {
 			var deferred = $q.defer();
+			var promise = deferred.promise;
 
 			SocketService.create(obj.config)
 				.success(function(data) {
 					deferred.resolve({name: obj.name, socket: data});
 				})
 				.error(function(error){
-					return $q.reject(error);
-				});
+					deferred.reject(error);					
+				});			
 
-			return deferred.promise;
+			return promise;
 		}
 
 		var addToList = function(data) {
@@ -117,6 +126,7 @@
 		}
 
 		return {
+			// TODO: add once event support
 			add: function(name, config) {
 				var deferred = $q.defer();
 				var promise = deferred.promise;
