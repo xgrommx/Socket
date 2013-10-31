@@ -13,11 +13,14 @@ io.sockets.on('connection', function (socket) {
 
 	setInterval(function() {
 		socket.emit('on_event', { data: "it'is emit event", time: new Date() });
-	}, 5000);
+	}, 1000);
 
 	socket.on('emit_event', function (data, fn) {
+		console.log('get emit >>>>');
 		console.log(data);
 		console.log(fn);
+
+		fn(data + ' response');
 	});
 
 });

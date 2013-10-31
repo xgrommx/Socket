@@ -107,17 +107,17 @@ describe('Socket: ', function() {
 
 			$rootScope.$apply();
 
-			// Waiting for connection for 3 seconds
+			// Waiting for connection for 4 seconds
 			runs(function() {
 				flag = false;
 				setTimeout(function() {	
 					flag = true;
-				}, 5000);
+				}, 4000);
 			});
 
 			waitsFor(function() {
 				return flag;
-			}, "It must connect or return error in 5 sec", 5001);
+			}, "It must connect or return error in 4 sec", 4001);
 
 			runs(function(){
 				expect(successValue).toBeUndefined();
@@ -127,6 +127,7 @@ describe('Socket: ', function() {
 	});
 
 	describe('SocketFactory', function() {
+		
 		it('Dont have any socket', function() {
 			expect(Object.keys(socketFactory.getList()).length).toBe(0);
 		});
@@ -174,50 +175,6 @@ describe('Socket: ', function() {
 			});
 		}));
 
-		it('Should be different', inject(function($rootScope) {
-			expect(socketFactory.hasSocket('socket1')).toBe(false);
-			expect(socketFactory.hasSocket('socket2')).toBe(false);
-
-			var flag;
-			var promise = socketFactory.add('socket1', {url: 'http://localhost:9999', opts: options});
-			var successValue, errorValue;
-			var socket1, socket2;
-
-			promise
-				.success(function(value) { socket1 = value; })
-				.error(function(value) { errorValue = value; });
-
-			$rootScope.$apply();
-
-			promise = socketFactory.add('socket2', {url: 'http://localhost:9999', opts: options});
-			promise
-				.success(function(value) { socket2 = value; })
-				.error(function(value) { errorValue = value; });
-
-			$rootScope.$apply();
-
-			// Waiting for connection for 5 seconds
-			runs(function() {
-				flag = false;
-				setTimeout(function() {	
-					flag = true;
-				}, 5000);
-			});
-
-			waitsFor(function() {
-				return flag;
-			}, "It must connect or return error in 5 sec", 5001);
-
-			runs(function(){
-				expect(socketFactory.hasSocket('socket1')).toBe(true);
-				expect(socketFactory.hasSocket('socket2')).toBe(true);
-				expect(socketFactory.get('socket1')).not.toBe(null);
-				expect(socketFactory.get('socket2')).not.toBe(null);
-				expect(socket1).not.toEqual(socket2);
-			});
-
-		}));
-
 		it('Should check and add events', inject(function($rootScope) {
 			var flag;
 			var promise = socketFactory.add('socket1', {url: 'http://localhost:9999', opts: options});
@@ -263,8 +220,6 @@ describe('Socket: ', function() {
 			});
 
 			// TODO: Check on and emit event structure
-			// TODO: event structure name
-			// TODO: once event check
 		}));
 
 		it('Should call callback function', inject(function($rootScope){
@@ -283,7 +238,7 @@ describe('Socket: ', function() {
 			// Waiting for connection for 3 seconds
 			runs(function() {
 				flag = false;
-				setTimeout(function() {	
+				setTimeout(function() {
 					flag = true;
 				}, 3000);
 			});
@@ -293,17 +248,46 @@ describe('Socket: ', function() {
 			}, "It must connect or return error in 3 sec", 3001);
 
 			runs(function(){
-				var emitData = '';
+
+				var emitData = '', 
+					flag_callback,
+					test_data = 'test data',
+					onCounter = 0,
+					onceCounter = 0;
+
 				var emitCallback = function(data) {
-					console.log(data);
 					emitData = data;
 				};
 
-				var emitEvent = socketFactory.addEmit('socket1', 'emit_event', emitCallback);
+				var onCallback = function(data) {
+					onCounter++;
+				};
 
-				$rootScope.$apply();
+				var onceCallback = function(data) {
+					onceCounter++;
+				};
 
-				expect(emitData).toEqual('tes1');
+				var emitEvent = socketFactory.addEmit('socket1', 'emit_event', 'test data', emitCallback);
+				var onEvent = socketFactory.addOn('socket1', 'on_event', onCallback);
+				var onceEvent = socketFactory.addOnce('socket1', 'on_event', onceCallback);
+
+				runs(function() {
+					setTimeout(function() {
+						flag_callback = true;
+					}, 5000);
+				});
+
+				waitsFor(function() {
+					return flag_callback;
+				}, "It must return callback in 5 sec", 5001);
+
+				runs(function(){
+					expect(emitData).toEqual(test_data + ' response');
+					expect(emitEvent.emited).toBe(true);
+					expect(onCounter >= 4).toBe(true);
+					expect(onceCounter == 1).toBe(true);
+					expect(onceEvent.executed).toBe(true);
+				});
 			});
 		}));
 
