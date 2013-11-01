@@ -33,12 +33,6 @@
 						deferred.reject('CONNECTION ERROR');
 					});
 				});
-
-				/* NEED TO TEST IT
-				socket.on('disconnect', function() {
-					socket.removeAllListeners();
-				});
-				*/
 			} catch ( err ) {
 				return $q.reject( err );
 			}
@@ -81,6 +75,7 @@
 	var SocketFactory = function($rootScope, $q, SocketService) {
 		// Item in list: 'name': { socket: socket instance, on: {}, emit: {}, once: {} }
 		var socketList = {};
+		var defListeners = ['connect', 'error'];
 
 		var add = function(obj) {
 			var deferred = $q.defer();
@@ -104,6 +99,7 @@
 					socketList[ data.name ][ 'socket' ] = data.socket;
 					socketList[ data.name ][ 'on' ]	    = (typeof data.on === 'undefined') ? {} : data.on;
 					socketList[ data.name ][ 'emit' ]   = (typeof data.emit === 'undefined') ? {} : data.emit;
+					socketList[ data.name ][ 'once' ]   = (typeof data.once === 'undefined') ? {} : data.once;
 					return socketList[ data.name ];
 				}
 			}
@@ -137,7 +133,7 @@
 
 					deferred.resolve({name: name, config: config});
 				} else {
-					deferred.resolve(socketList[name]);
+					deferred.resolve(socketList[ name ]);
 				}
 
 				promise.success = function(fn) {
@@ -157,29 +153,47 @@
 				return promise;
 			},
 			push: function(name, socket) {
-				// TODO: test it
 				if (typeof name !== 'string') {
-					return false;
+					return null;
 				}
 
 				if (typeof socket === 'undefined') {
-					return false;
+					return null;
 				}
 
 				if ( hasSocket(name) ) {
-					return false;
+					return null;
 				}
 
 				socketList[ name ] = {};
 				socketList[ name ][ 'socket' ] 	= socket;
 				socketList[ name ][ 'on' ]		= {};
 				socketList[ name ][ 'emit' ]   	= {};
+				socketList[ name ][ 'once' ]   	= {};
+
+				for (var evnt in socket.$events) {
+					if ( defListeners.indexOf( evnt ) == -1 ) {
+						socketList[ name ][ 'on' ][ evnt ] = {
+							event_name: evnt,
+							bc_name: name + ':' + evnt,
+							callback: socket.$events[ evnt ]
+						};
+					}
+				}
 
 				return socketList[ name ];
 			},
 			remove: function(name) {
-				// TODO: realize
-				// TODO: test
+				if (hasSocket(name)) {
+					socketList[ name ].socket.on('disconnect', function() {						
+						socketList[ name ].socket.removeAllListeners();
+
+						delete socketList[ name ];
+					});
+
+					socketList[ name ].socket.disconnect();
+				}
+
 				return true;
 			},
 			hasSocket: function(name) {
@@ -190,14 +204,14 @@
 					return null;
 				}
 
-				return socketList[name];
+				return socketList[ name ];
 			},
 			socket: function(name) {
 				if (!hasSocket(name)) {
 					return null;
 				}
 
-				return socketList[name].socket;
+				return socketList[ name ].socket;
 			},
 			addOn: function(name, event_name, callback) {
 				// Returns null if no socket with name, or on event
@@ -209,17 +223,32 @@
 					socketList[ name ].on = {};
 				}
 
-				if (typeof socketList[ name ].on.event_name !== 'undefined') {
-					return socketList[ name ].on.event_name;
+				if (typeof socketList[ name ].on[ event_name ] !== 'undefined') {
+					socketList[ name ].on[ event_name ].bc_name.push( getBcName(name, event_name, callback) );
+					socketList[ name ].on[ event_name ].callback.push( callback );
+
+					socketList[ name ].socket.on(event_name, function(data) {
+						switch(typeof callback){
+							case 'function':
+								callback(data);
+								break;
+
+							default:
+								$rootScope.$broadcast(obj.bc_name, data);
+								break;
+						}
+					});
+
+					return socketList[ name ].on[ event_name ];
 				}
 
 				var obj = {
 					event_name: event_name,
-					bc_name: getBcName(name, event_name, callback),
-					callback: callback
+					bc_name: [ getBcName(name, event_name, callback) ],
+					callback: [ callback ]
 					};
 
-				socketList[ name ].on.event_name = obj;
+				socketList[ name ].on[ event_name ] = obj;
 
 				socketList[ name ].socket.on(event_name, function(data) {
 					switch(typeof callback){
@@ -233,7 +262,7 @@
 					}
 				});
 
-				return socketList[ name ].on.event_name;
+				return socketList[ name ].on[ event_name ];
 			},
 			addEmit: function(name, event_name, data, callback) {
 				// Returns null if no socket with name, or on event
@@ -245,8 +274,8 @@
 					socketList[ name ].emit = {};
 				}
 
-				if (typeof socketList[ name ].emit.event_name !== 'undefined') {
-					return socketList[ name ].emit.event_name;
+				if (typeof socketList[ name ].emit[ event_name ] !== 'undefined') {
+					return socketList[ name ].emit[ event_name ];
 				}
 
 				var obj = {
@@ -256,23 +285,24 @@
 					emited: false
 					};
 
-				socketList[ name ].emit.event_name = obj;
+				socketList[ name ].emit[ event_name ] = obj;
 
-				socketList[ name ].socket.emit(event_name, data, function(data) {
+				socketList[ name ].socket.emit(event_name, data, function(response) {
+
 					switch(typeof callback){
 						case 'function':
-							callback(data);
+							callback(response);
 							break;
 
 						default:
-							$rootScope.$broadcast(obj.bc_name, data);
+							$rootScope.$broadcast(obj.bc_name, response);
 							break;
 					}
 
-					socketList[ name ].emit.event_name.emited = true;
+					socketList[ name ].emit[ event_name ].emited = true;
 				});
 
-				return socketList[ name ].emit.event_name;
+				return socketList[ name ].emit[ event_name ];
 			},
 			addOnce: function(name, event_name, callback) {
 				// Returns null if no socket with name, or on event
@@ -284,8 +314,8 @@
 					socketList[ name ].once = {};
 				}
 
-				if (typeof socketList[ name ].once.event_name !== 'undefined') {
-					return socketList[ name ].once.event_name;
+				if (typeof socketList[ name ].once[ event_name ] !== 'undefined') {
+					return socketList[ name ].once[ event_name ];
 				}
 
 				var obj = {
@@ -295,7 +325,7 @@
 					executed: false
 					};
 
-				socketList[ name ].once.event_name = obj;
+				socketList[ name ].once[ event_name ] = obj;
 
 				socketList[ name ].socket.once(event_name, function(data) {
 					switch(typeof callback){
@@ -308,10 +338,10 @@
 							break;
 					}
 
-					socketList[ name ].once.event_name.executed = true;
+					socketList[ name ].once[ event_name ].executed = true;
 				});
 
-				return socketList[ name ].once.event_name;
+				return socketList[ name ].once[ event_name ];
 			},
 			getOn: function(name, event_name) {
 				if (!hasSocket(name)) {
@@ -322,11 +352,11 @@
 					return null;
 				}
 
-				if (typeof socketList[ name ].on.event_name === 'undefined') {
+				if (typeof socketList[ name ].on[ event_name ] === 'undefined') {
 					return null;
 				}
 
-				return socketList[ name ].on.event_name;
+				return socketList[ name ].on[ event_name ];
 			},
 			getEmit: function(name, event_name) {
 				if (!hasSocket(name)) {
@@ -337,11 +367,26 @@
 					return null;
 				}
 
-				if (typeof socketList[ name ].emit.event_name === 'undefined') {
+				if (typeof socketList[ name ].emit[ event_name ] === 'undefined') {
 					return null;
 				}
 
-				return socketList[ name ].emit.event_name;
+				return socketList[ name ].emit[ event_name ];
+			},
+			getOnce: function(name, event_name) {
+				if (!hasSocket(name)) {
+					return null;
+				}
+
+				if (typeof socketList[ name ].once === 'undefined') {
+					return null;
+				}
+
+				if (typeof socketList[ name ].once[ event_name ] === 'undefined') {
+					return null;
+				}
+
+				return socketList[ name ].once[ event_name ];
 			},
 			getList: function() {
 				return socketList;
