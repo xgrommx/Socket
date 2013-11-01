@@ -185,7 +185,7 @@
 			},
 			remove: function(name) {
 				if (hasSocket(name)) {
-					socketList[ name ].socket.on('disconnect', function() {						
+					socketList[ name ].socket.on('disconnect', function() {
 						socketList[ name ].socket.removeAllListeners();
 
 						delete socketList[ name ];
