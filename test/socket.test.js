@@ -287,7 +287,7 @@ describe('Socket: ', function() {
 					expect(onceEvent.executed).toBe(true);
 
 					expect(socketFactory.getOn('socket1', 'on_event').event_name).toEqual('on_event');
-					expect(socketFactory.getOn('socket1', 'on_event').bc_name[ 0 ]).toEqual('socket1:on_event');
+					expect(socketFactory.getOn('socket1', 'on_event').bc_name.length).toBe(0);
 					expect(socketFactory.getOn('socket1', 'on_event').callback[ 0 ]).toEqual(onCallback);
 
 					expect(socketFactory.getEmit('socket1', 'emit_event').event_name).toEqual('emit_event');
@@ -522,11 +522,11 @@ describe('Socket: ', function() {
 					expect(socketFactory.getOn('socket1', 'on_event').bc_name).not.toBeUndefined();
 					expect(socketFactory.getOn('socket1', 'on_event').callback).not.toBeUndefined();
 
-					expect(socketFactory.getOn('socket1', 'on_event').bc_name.length).toBe(2);
+					expect(socketFactory.getOn('socket1', 'on_event').bc_name.length).toBe(0);
 					expect(socketFactory.getOn('socket1', 'on_event').callback.length).toBe(2);
 				});
 			});
 
-		}));		
+		}));
 	});
 });

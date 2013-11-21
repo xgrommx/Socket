@@ -97,7 +97,7 @@
 				if (typeof data.name !== 'undefined') {
 					socketList[ data.name ] = {};
 					socketList[ data.name ][ 'socket' ] = data.socket;
-					socketList[ data.name ][ 'on' ]	    = (typeof data.on === 'undefined') ? {} : data.on;
+					socketList[ data.name ][ 'on' ]		= (typeof data.on === 'undefined') ? {} : data.on;
 					socketList[ data.name ][ 'emit' ]   = (typeof data.emit === 'undefined') ? {} : data.emit;
 					socketList[ data.name ][ 'once' ]   = (typeof data.once === 'undefined') ? {} : data.once;
 					return socketList[ data.name ];
@@ -166,10 +166,10 @@
 				}
 
 				socketList[ name ] = {};
-				socketList[ name ][ 'socket' ] 	= socket;
+				socketList[ name ][ 'socket' ]	= socket;
 				socketList[ name ][ 'on' ]		= {};
-				socketList[ name ][ 'emit' ]   	= {};
-				socketList[ name ][ 'once' ]   	= {};
+				socketList[ name ][ 'emit' ]	= {};
+				socketList[ name ][ 'once' ]	= {};
 
 				for (var evnt in socket.$events) {
 					if ( defListeners.indexOf( evnt ) == -1 ) {
@@ -224,43 +224,44 @@
 				}
 
 				if (typeof socketList[ name ].on[ event_name ] !== 'undefined') {
-					socketList[ name ].on[ event_name ].bc_name.push( getBcName(name, event_name, callback) );
-					socketList[ name ].on[ event_name ].callback.push( callback );
-
-					socketList[ name ].socket.on(event_name, function(data) {
-						switch(typeof callback){
-							case 'function':
-								callback(data);
-								break;
-
-							default:
-								$rootScope.$broadcast(obj.bc_name, data);
-								break;
-						}
-					});
-
-					return socketList[ name ].on[ event_name ];
-				}
-
-				var obj = {
-					event_name: event_name,
-					bc_name: [ getBcName(name, event_name, callback) ],
-					callback: [ callback ]
-					};
-
-				socketList[ name ].on[ event_name ] = obj;
-
-				socketList[ name ].socket.on(event_name, function(data) {
 					switch(typeof callback){
 						case 'function':
-							callback(data);
+							socketList[ name ].on[ event_name ].callback.push( callback );
 							break;
 
 						default:
-							$rootScope.$broadcast(obj.bc_name, data);
+							socketList[ name ].on[ event_name ].bc_name.push( getBcName(name, event_name, callback) );
 							break;
 					}
-				});
+				} else {
+					var obj = {
+						event_name: event_name,
+						bc_name: [],
+						callback: []
+						};
+
+					socketList[ name ].on[ event_name ] = obj;
+
+					switch(typeof callback){
+						case 'function':
+							socketList[ name ].on[ event_name ].callback.push( callback );
+							break;
+
+						default:
+							socketList[ name ].on[ event_name ].bc_name.push( getBcName(name, event_name, callback) );
+							break;
+					}
+
+					socketList[ name ].socket.on(event_name, function(data) {
+						for (var i = 0, len_bc = socketList[ name ].on[ event_name ].bc_name.length; i < len_bc; i++) {
+							$rootScope.$broadcast(socketList[ name ].on[ event_name ].bc_name[ i ], data);
+						}
+
+						for (var j = 0, len_cl = socketList[ name ].on[ event_name ].callback.length; i < len_cl; i++) {
+							socketList[ name ].on[ event_name ].callback[ i ](data);
+						}
+					});
+				}
 
 				return socketList[ name ].on[ event_name ];
 			},
@@ -274,18 +275,19 @@
 					socketList[ name ].emit = {};
 				}
 
+				var obj = {};
 				if (typeof socketList[ name ].emit[ event_name ] !== 'undefined') {
-					return socketList[ name ].emit[ event_name ];
+					obj = socketList[ name ].emit[ event_name ];
+				} else {
+					obj = {
+						event_name: event_name,
+						bc_name: getBcName(name, event_name, callback),
+						callback: callback,
+						emited: false
+						};
+
+					socketList[ name ].emit[ event_name ] = obj;
 				}
-
-				var obj = {
-					event_name: event_name,
-					bc_name: getBcName(name, event_name, callback),
-					callback: callback,
-					emited: false
-					};
-
-				socketList[ name ].emit[ event_name ] = obj;
 
 				socketList[ name ].socket.emit(event_name, data, function(response) {
 
@@ -314,18 +316,19 @@
 					socketList[ name ].once = {};
 				}
 
+				var obj = {};
 				if (typeof socketList[ name ].once[ event_name ] !== 'undefined') {
-					return socketList[ name ].once[ event_name ];
+					obj = socketList[ name ].once[ event_name ];
+				} else {
+					obj = {
+						event_name: event_name,
+						bc_name: getBcName(name, event_name, callback),
+						callback: callback,
+						executed: false
+						};
+
+					socketList[ name ].once[ event_name ] = obj;
 				}
-
-				var obj = {
-					event_name: event_name,
-					bc_name: getBcName(name, event_name, callback),
-					callback: callback,
-					executed: false
-					};
-
-				socketList[ name ].once[ event_name ] = obj;
 
 				socketList[ name ].socket.once(event_name, function(data) {
 					switch(typeof callback){
